@@ -1,0 +1,591 @@
+<!-- StAuth10244: I Trung Kien Bui, 000356049 certify that this material is my original work. 
+No other person's work has been used without due acknowledgement. I have not made my work available to anyone else. -->
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>Assignment2</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <style>
+    /* The height and width of the div will become the dimensions of the map! */
+    #map {
+      height: 700px;
+      width: 1400px;
+      border: 3px solid black;
+      border-radius: 10px;
+    }
+
+    @media (max-width: 768px) {
+      #map {
+        height: 400px;
+        width: 450px;
+        /* Adjust height for larger screens */
+      }
+
+      h1.text-success {
+        color: brown !important;
+      }
+
+      button.btn-success {
+        color: white !important;
+        background-color: brown !important;
+      }
+    }
+
+    /* Small Devices, .visible-sm-* */
+    @media (min-width: 768px) and (max-width: 991px) {
+      #map {
+        height: 500px;
+        width: 700px;
+      }
+
+      h1.text-success {
+        color: blue !important;
+      }
+
+      button.btn-success {
+        color: white !important;
+        background-color: blue !important;
+      }
+    }
+
+    /* Medium Devices, .visible-md-* */
+    @media (min-width: 992px) and (max-width: 1199px) {
+      #map {
+        height: 500px;
+        width: 1000px;
+      }
+
+      h1.text-success {
+        color: red !important;
+      }
+
+      button.btn-success {
+        color: white !important;
+        background-color: red !important;
+      }
+    }
+  </style>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"
+    integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+</head>
+
+<body class="container-fluid mt-4">
+  <!-- title -->
+  <h1 class="mb-4 text-center text-success">Hamilton's Parks</h1>
+  <!-- for display google map -->
+  <div id="map" class="mx-auto"></div>
+
+  <!-- 3 markers buttons -->
+  <div class="d-flex justify-content-center flex-wrap mb-2">
+    <button id="community" class="btn btn-success mb-3">Show Community Parks</button>
+    <button id="Neighbourhood" class="btn btn-success mb-3">Show Neighbourhood Parks</button>
+    <button id="clear" class="btn btn-success mb-3">Clear Markers</button>
+  </div>
+  <!-- get my location button -->
+  <div class="d-flex justify-content-center mb-3">
+    <button id="geolocate" class="btn btn-warning">Get My Location</button>
+  </div>
+  <!-- search address-->
+  <div class="input-group mb-3">
+    <input type="text" id="addressInput" class="form-control" placeholder="Enter address">
+    <button id="searchAddress" class="btn btn-info">Search Address</button>
+  </div>
+  <!-- drop-down locations -->
+  <label for="originSelect" class="form-label">Select Origin:</label>
+  <select id="originSelect" class="form-select mb-3">
+    <option value="geolocation">Current Location</option>
+    <option value="Mohawk College">Mohawk College</option>
+    <option value="hospital">St. Joseph's Healthcare Hamilton, West 5th Campus</option>
+    <option value="battlefieldPark_origin">Battlefield Park</option>
+    <option value="walmart">Walmart</option>
+    <option value="mcmaster">McMaster University</option>
+    <!-- Add other options as needed -->
+  </select>
+  <!-- drop down destinations-->
+  <label for="destinationSelect" class="form-label">Select Destination:</label>
+  <select id="destinationSelect" class="form-select mb-3">
+    <option value="albionFalls">Albion Falls Park</option>
+    <option value="amberlyPark">Amberly Park</option>
+    <option value="belviewPark">Belview Park</option>
+    <option value="battlefieldPark">Battlefield Park</option>
+    <option value="cascadesPark">Cascades Park</option>
+    <option value="dundurnPark">Dundurn Park</option>
+    <option value="faircourtPark">Faircourt Park</option>
+    <option value="gagePark">Gage Park</option>
+    <option value="harveyPark">Harvey Park</option>
+    <option value="glenCastlePark">Glen Castle Park</option>
+    <!-- Add other options as needed -->
+  </select>
+
+  <div class="d-flex justify-content-center mb-3">
+    <button id="getDirections" class="btn btn-primary">Get Directions</button>
+  </div>
+
+  <script async
+    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBam1IVcf836v8xc2DEA25GeNieDwl3aGA&callback=initMap">
+    </script>
+  <script>
+
+    // See the official Google Map documentation here:
+    //   https://developers.google.com/maps/documentation/javascript/overview
+    let map;
+    let directionsRenderer; // Global variable to store DirectionsRenderer
+    // The initMap() function will be called when the above Google Maps JS
+    // library finishes loading.  Notice the URL parameter callback=initMap,
+    // this is how the library knows to call this initMap function when it 
+    // is done loading.  We could change the name of the function in that 
+    // URL if we wanted to call it something different.
+    function initMap() {
+      map = new google.maps.Map(document.getElementById("map"),
+        {
+          center: { lat: 43.255203, lng: -79.843826 },
+          zoom: 12,
+        });
+      directionsRenderer = new google.maps.DirectionsRenderer();
+      const infowindow = new google.maps.InfoWindow({
+      });
+      function createMarker(position, label, title, content) {
+        const marker = new google.maps.Marker({
+          position,
+          map,
+          label,
+          title,
+        });
+        marker.addListener("click", () => {
+          // Close previously opened infowindow
+          infowindow.close();
+
+          // Set new content and open infowindow
+          infowindow.setContent(content);
+          infowindow.open(map, marker);
+        });
+        return marker;
+      }
+      // --------------------------------------get directions button--------------------------------------
+      document.getElementById("getDirections").addEventListener("click", () => {
+        const originSelect = document.getElementById("originSelect");
+        const destinationSelect = document.getElementById("destinationSelect");
+
+        const originValue = originSelect.options[originSelect.selectedIndex].value;
+        const destinationValue = destinationSelect.options[destinationSelect.selectedIndex].value;
+
+        let origin, destination;
+
+        // Set origin based on selected value
+        if (originValue === "geolocation") {
+          if (!geolocationObtained) {
+            alert("Please click on 'Get My Location' before selecting 'Current Location'.");
+            return;
+          }
+          // User's current location
+          origin = new google.maps.LatLng(map.getCenter().lat(), map.getCenter().lng());
+        } else if (originValue === "Mohawk College") {
+          origin = new google.maps.LatLng(43.2387, -79.8881);
+        } else if (originValue === "hospital") {
+          origin = new google.maps.LatLng(43.240445, -79.8841077);
+        } else if (originValue === "battlefieldPark_origin") {
+          origin = new google.maps.LatLng(43.21846, -79.76612999999999);
+        } else if (originValue === "walmart") {
+          origin = new google.maps.LatLng(43.234196, -79.87780839999999);
+        } else if (originValue === "mcmaster") {
+          origin = new google.maps.LatLng(43.2622445, -79.9202861);
+        }
+        else {
+          // Handle other origin options if needed
+        }
+
+        // Set destination based on selected value
+        if (destinationValue === "albionFalls") {
+          destination = new google.maps.LatLng(43.20067, -79.82191);
+        } else if (destinationValue === "amberlyPark") {
+          destination = new google.maps.LatLng(43.20856999999999, -79.9947399);
+        } else if (destinationValue === "belviewPark") {
+          destination = new google.maps.LatLng(43.25013, -79.82248000000001);
+        } else if (destinationValue === "battlefieldPark") {
+          destination = new google.maps.LatLng(43.21846, -79.76612999999999);
+        } else if (destinationValue === "cascadesPark") {
+          destination = new google.maps.LatLng(43.2734518, -79.95931379999999);
+        } else if (destinationValue === "dundurnPark") {
+          destination = new google.maps.LatLng(43.2681608, -79.8846982);
+        } else if (destinationValue === "faircourtPark") {
+          destination = new google.maps.LatLng(43.2197994, -79.76537359999999);
+        } else if (destinationValue === "gagePark") {
+          destination = new google.maps.LatLng(43.2448444, -79.82963869999999);
+        } else if (destinationValue === "harveyPark") {
+          destination = new google.maps.LatLng(43.2718883, -79.8860323);
+        } else if (destinationValue === "glenCastlePark") {
+          destination = new google.maps.LatLng(43.21353999999999, -79.8006599);
+        }
+        // Add other destination options as needed
+
+        // Check if both origin and destination are set
+        if (origin && destination) {
+          // Clear existing directions
+          directionsRenderer.setMap(null);
+
+          // Use the Directions service to get directions
+          const directionsService = new google.maps.DirectionsService();
+          directionsRenderer.setMap(map); // Set map for DirectionsRenderer
+          // Set options for the directions request
+          const request = {
+            origin: origin,
+            destination: destination,
+            travelMode: google.maps.TravelMode.DRIVING, // You can change the travel mode as needed
+          };
+
+          // Make the directions request
+          directionsService.route(request, (response, status) => {
+            if (status === "OK") {
+              directionsRenderer.setDirections(response);
+            } else {
+              alert("Directions request failed due to " + status);
+            }
+          });
+        } else {
+          alert("Please select both origin and destination locations.");
+        }
+      });
+
+      let geolocationObtained = false;
+      // --------------------------------------geolocation button--------------------------------------
+      document.getElementById("geolocate").addEventListener("click", () => {
+        // Check if geolocation is supported by the browser
+        if (navigator.geolocation) {
+          // Request user's location
+          navigator.geolocation.getCurrentPosition(
+            (position) => {
+              // Get user's latitude and longitude
+              const userLatLng = {
+                lat: position.coords.latitude,
+                lng: position.coords.longitude,
+              };
+
+              // Create a marker for the user's location with a different icon
+              const userMarker = new google.maps.Marker({
+                position: userLatLng,
+                map,
+                icon: "https://maps.google.com/mapfiles/kml/paddle/ylw-stars.png", // Example icon URL
+                title: "Your Location",
+              });
+
+              // Optional: You can also open an info window with more details if needed
+              const infowindow = new google.maps.InfoWindow({
+                content: "Your current location",
+              });
+
+              userMarker.addListener("click", () => {
+                infowindow.open(map, userMarker);
+              });
+
+              // Center the map on the user's location
+              map.setCenter(userLatLng);
+              // Set geolocation obtained to true
+              geolocationObtained = true;
+            },
+            (error) => {
+              console.error("Error getting geolocation:", error);
+            }
+          );
+        } else {
+          alert("Geolocation is not supported by your browser.");
+        }
+      });
+
+      // --------------------------------------search address button--------------------------------------
+      document.getElementById("searchAddress").addEventListener("click", () => {
+        // Get the address entered by the user
+        const address = document.getElementById("addressInput").value;
+
+        // Use the Geocoding service to convert the address to coordinates
+        const geocoder = new google.maps.Geocoder();
+        geocoder.geocode({ address: address }, (results, status) => {
+          if (status === "OK" && results && results.length > 0) {
+            // Get the first result (most relevant) and its coordinates
+            const location = results[0].geometry.location;
+
+            // Create a marker for the entered address
+            const addressMarker = new google.maps.Marker({
+              position: location,
+              map,
+              icon: "https://maps.google.com/mapfiles/kml/paddle/ylw-stars.png",
+              title: "Your location is here",
+            });
+
+            // Optional: You can also open an info window with more details if needed
+            const infowindow = new google.maps.InfoWindow({
+              content: "Location based on entered address",
+            });
+
+            addressMarker.addListener("click", () => {
+              infowindow.open(map, addressMarker);
+            });
+
+            // Center the map on the entered address
+            map.setCenter(location);
+          } else {
+            alert("Address not found. Please try again.");
+          }
+        });
+      });
+      // Albion Falls Park
+      createMarker(
+        { lat: 43.20067, lng: -79.82191 },
+        "1",
+        "Albion Falls Park",
+        "<h3>Albion Falls Park</h3>" +
+        "<p>Albion Falls is one of the most picturesque waterfalls in the region and one of the city’s most...<a href=\"https://tourismhamilton.com/albion-falls/\">click here to read more</a>" +
+        "<p>Address: 768 Mountain Brow Blvd, Hamilton, ON L8W 1R6</p>" +
+        "<br><img src=\"https://lh5.googleusercontent.com/p/AF1QipNgHa1SIYG9MZxr7RszOQDsB-5H03oaE3Ga7jjS=w101-h168-n-k-no-nu\"" +
+        "width=\"150\">"
+      );
+
+      // Amberly park
+      createMarker(
+        { lat: 43.20856999999999, lng: -79.9947399 },
+        "2",
+        "Amberly park",
+        "<h3>Amberly park</h3>" +
+        "<p>This rest area is across the Road from the Amberley General Store and Gas Station.  A nicely treed picnic...<a href=\"https://visitpointclark.ca/profile/amberley-park/2959/\">click here to read more</a>" +
+        "<p>Address: 284 Nakoma Rd, Ancaster, ON L9G 1V7</p>" +
+        "<br><img src=\"https://s3-media0.fl.yelpcdn.com/bphoto/WEZyv5hPPeh9rHG1z4JDQg/348s.jpg\"" +
+        "width=\"250\">"
+      );
+
+      // Belview park
+      createMarker(
+        { lat: 43.25013, lng: -79.82248000000001 },
+        "3",
+        "Belview park",
+        "<h3>Belview park</h3>" +
+        "<p>Belview Park has a play structure, swings, a spray pad,...<a href=\"https://visitpointclark.ca/profile/amberley-park/2959/\">click here to read more</a>" +
+        "<p>Address: 205 Belmont Ave, Hamilton, ON L8L 7M6</p>"
+      );
+
+      // Battlefield park
+      createMarker(
+        { lat: 43.21846, lng: -79.76612999999999 },
+        "4",
+        "Battlefield park",
+        "<h3>Battlefield park</h3>" +
+        "<p>Battlefield House near King Street East and Centennial Parkway in Stoney Creek, Hamilton, Ontario,...<a href=\"https://en.wikipedia.org/wiki/Battlefield_House_(Stoney_Creek,_Ontario)\">click here to read more</a>" +
+        "<p>Address: 77 King St W, Stoney Creek, ON L8G 5E5</p>" +
+        "<br><img src=\"https://tourismhamilton.com/media/7e99872a-1744-4d8b-920a-ac4d662c67ac.jpg\"" +
+        "width=\"250\">"
+      );
+
+      // Cascades park
+      createMarker(
+        { lat: 43.2734518, lng: -79.95931379999999 },
+        "5",
+        "Cascades park",
+        "<h3>Cascades park</h3>" +
+        "<p>Park at Cascades Park and head up the gravel path. From the bridge, you can see Lower Sydenham Falls here...<a href=\"https://www.bittenescapes.com/hikes/tag/Hamilton\">click here to read more</a>" +
+        "<p>Address: 66 Livingstone Dr, Hamilton, ON L9H 7S4</p>" +
+        "<br><img src=\"https://images.squarespace-cdn.com/content/v1/53774b19e4b02c5d20514493/1465344681343-GOTNQJ2WQ5JWCCDJ3YFP/image-asset.jpeg?format=750w\"" +
+        "width=\"250\">"
+      );
+      //Dundurn Park
+      createMarker(
+        { lat: 43.2681608, lng: -79.8846982 },
+        "6",
+        "Dundurn Park",
+        "<h3>Dundurn Park</h3>" +
+        "<p>Once home to Sir Allan Napier MacNab, railway magnate, lawyer and Premier of the United Canadas (1854-1856) and his family, today Dundurn Castle...<a href=\"https://www.hamilton.ca/things-do/hamilton-civic-museums/dundurn-national-historic-site\">click here to read more</a>" +
+        "<p>Address: 610 York Blvd, Hamilton, ON L8R</p>" +
+        "<br><img src=\"https://lh3.googleusercontent.com/p/AF1QipMctM-AGK6B3qheTmgwJS31IxvcZdi02V-swOu7=s680-w680-h510\"" +
+        "width=\"250\">"
+      );
+      //Faircourt Park
+      createMarker(
+        { lat: 43.2197994, lng: -79.76537359999999 },
+        "7",
+        "Faircourt Park",
+        "<h3>Faircourt Park</h3>" +
+        "<p>Mountain Drive Park has play equipment, benches, a shelter, parking lots, and walkways. The park...<a href=\"https://playgroundfind.com/places/canada/on/hamilton-on/outdoor-play/faircourt-park/\">click here to read more</a>" +
+        "<p>Address: 40 Faircourt Dr, Stoney Creek, ON L8G 2J5</p>" +
+        "<br><img src=\"https://lh3.googleusercontent.com/p/AF1QipMvTTRhq5TSYK7UD3tNdJ1AlNouANZl7s5gzWSD=s680-w680-h510\"" +
+        "width=\"250\">"
+      );
+
+      //Gage Park
+      createMarker(
+        { lat: 43.2448444, lng: -79.82963869999999 },
+        "8",
+        "Gage Park",
+        "<h3>Gage Park</h3>" +
+        "<p>Gage Park is a 30 hectare multi-use park located at 1000 Main Street East in Ward 3. The site is bounded by...<a href=\"https://www.hamilton.ca/things-do/parks-green-space/creating-improving-parks/park-projects/gage-park\">click here to read more</a>" +
+        "<p>Address: 1000 Main St E, Hamilton, ON L8M 1N2</p>" +
+        "<br><img src=\"https://lh3.googleusercontent.com/p/AF1QipOuvbhOVHCazpGmoeiuXzy3y4aBvuf4ow8nj-N8=s680-w680-h510\"" +
+        "width=\"250\">"
+      );
+
+      //Harvey Park
+      createMarker(
+        { lat: 43.2718883, lng: -79.8860323 },
+        "9",
+        "Harvey Park",
+        "<h3>Harvey Park</h3>" +
+        "<p>The park provides a nice area for walking or picnicking. The site also has considerable historical significance....<a href=\"https://www.ontariotrails.on.ca/trail/harvey-park\">click here to read more</a>" +
+        "<p>Address: 800 York Blvd, Hamilton, ON L8R 2A4</p>" +
+        "<br><img src=\"https://lh3.googleusercontent.com/p/AF1QipNeFWqjvs8nwTJDtdnbzLhROyuqweFYLJTLT-Z4=s680-w680-h510\"" +
+        "width=\"250\">"
+      );
+      //Glen Castle Park
+      createMarker(
+        { lat: 43.21353999999999, lng: -79.8006599 },
+        "10",
+        "Glen Castle Park",
+        "<h3>Glen Castle Park</h3>" +
+        "<p>Get more information for Glen Castle Park in Hamilton, ON. See reviews, map, get the address, and find directions...<a href=\"https://canada247.info/explore/ontario/hamilton_division/hamilton/kings_forest_lower_b/glen_castle_park.html\">click here to read more</a>" +
+        "<p>Address: 30 Glen Castle Dr, Hamilton, ON L8K, Canada</p>" +
+        "<br><img src=\"https://lh3.googleusercontent.com/p/AF1QipOSufHHjImA36V1fqYg8VCBlfnzCYJ8eSFkfJ7V=s680-w680-h510\"" +
+        "width=\"250\">"
+      );
+      // function to filter markers by category neighbourhood
+      function filterNeighbourhood() {
+        parkMarkers.forEach((marker) => {
+          if (marker.CATEGORY === "Neighbourhood") {
+            marker.setMap(map);
+          } else {
+            marker.setMap(null);
+          }
+        });
+      }
+      // function to filter markers by category community
+      function filterCommunity() {
+        parkMarkers.forEach((marker) => {
+          if (marker.CATEGORY === "Community") {
+            marker.setMap(map);
+          } else {
+            marker.setMap(null);
+          }
+        });
+      }
+      // button event listener for neighbourhood and clear community markers
+      document.getElementById("Neighbourhood").addEventListener("click", () => {
+        clearMarker();
+        createParkMarkers();
+        filterNeighbourhood();
+      });
+      // button event listener for community and clear neighbourhood markers
+      document.getElementById("community").addEventListener("click", () => {
+        clearMarker();
+        createParkMarkers();
+        filterCommunity();
+      });
+      // button event listener for clear all markers
+      document.getElementById("clear").addEventListener("click", () => {
+        clearMarker();
+      });
+      // function to clear all markers
+      function clearMarker() {
+        parkMarkers.forEach((marker) => {
+          marker.setMap(null);
+        });
+      }
+
+      // --------------------------------function to create show all parks markers by category--------------------------------
+      let parkData; //geojson data
+      let parkCategories = []; // all park categories
+      let parkMarkers = []; // all markers, can be used to filter by category
+      // function to load park data fetch from Hamilton website
+      function loadParks() {
+        const dataURL = 'https://services.arcgis.com/rYz782eMbySr2srL/arcgis/rest/services/Parks_OD/FeatureServer/6/query?outFields=*&where=1%3D1&f=geojson';
+        fetch(dataURL).then(
+          (response) => response.json()
+        ).then(
+          (responseJson) => {
+            parkData = responseJson;
+            getAllParkCategories();
+            displayAllMarkers();
+          }
+        )
+      }
+      // function to create park markers
+      function createParkMarkers() {
+        parkMarkers = [];
+
+        // Loop through all parks and create a marker for each using createMarker function
+        parkData.features.forEach((park) => {
+          const coordinate = calculateLatLong(park.geometry.coordinates[0]);
+          const label = "";
+          const title = park.properties.NAME;
+          const content = JSON.stringify(park.properties);
+          const marker = createMarker(coordinate, label, title, content);
+          // Set icon based on park category
+          if (park.properties.PARK_CLASS === "Natural Open Space") {
+            marker.setIcon("https://maps.google.com/mapfiles/kml/paddle/grn-stars.png");
+          } else if (park.properties.PARK_CLASS === "Neighbourhood") {
+            marker.setIcon("https://maps.google.com/mapfiles/kml/paddle/blu-stars.png");
+          } else if (park.properties.PARK_CLASS === "Community") {
+            marker.setIcon("https://maps.google.com/mapfiles/kml/paddle/wht-stars.png");
+          }
+          marker.CATEGORY = park.properties.PARK_CLASS;
+
+          parkMarkers.push(marker);
+        })
+      }
+
+      // coordinates: [[x1, y1], [x2, y2], [x3, y3], ...]
+      // all coordinates of a park's polygon
+      // https://stackoverflow.com/a/3081078
+      function calculateLatLong(coordinates) {
+        //https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/reduce
+        const lowestX = coordinates.reduce((min, point) => min > point[0] ? point[0] : min, Infinity)
+        const highestX = coordinates.reduce((max, point) => max < point[0] ? point[0] : max, -Infinity)
+        const lowestY = coordinates.reduce((min, point) => min > point[1] ? point[1] : min, Infinity)
+        const highestY = coordinates.reduce((max, point) => max < point[1] ? point[1] : max, -Infinity)
+
+        const centerX = lowestX + ((highestX - lowestX) / 2);
+        const centerY = lowestY + ((highestY - lowestY) / 2);
+
+        // Check correct order X, Y, lat, long?
+        return ({ lat: centerY, lng: centerX });
+      }
+
+      // function to get all park categories
+      function getAllParkCategories() {
+        parkCategories = [];
+
+        parkData.features.forEach((park) => {
+          const category = park.properties.PARK_CLASS;
+          parkCategories.push(category);
+        })
+
+        console.log(">>> BEFORE DISTINCT", parkCategories);
+        // parkCategories contains duplicated value. Need to distinct
+        // https://stackoverflow.com/a/33121880
+
+        parkCategories = [... new Set(parkCategories)];
+        console.log(">>> AFTER DISTINCT", parkCategories);
+      }
+      // function to filterMarkers by category
+      function filterMarkers(category) {
+        parkMarkers.forEach((marker) => {
+          if (marker.CATEGORY === category) {
+            marker.setMap(map);
+          } else {
+            markder.setMap(null);
+          }
+        });
+      }
+      // function to display all markers
+      function displayAllMarkers() {
+        parkMarkers.forEach((marker) => {
+          marker.setMap(map);
+        });
+      }
+
+      // call API to load park data and create markers
+      loadParks();
+    }
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"
+    integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL"
+    crossorigin="anonymous"></script>
+</body>
+
+</html>
